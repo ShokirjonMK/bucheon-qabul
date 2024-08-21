@@ -130,7 +130,7 @@ class IkBotController extends Controller
                     $userOne->save(false);
                     return $telegram->sendMessage([
                         'chat_id' => $telegram_id,
-                        'text' => "🇺🇿 \n*TASHKENT PERFECT UNIVERSITY* onlayn ariza topshirish uchun telefon raqamingizni yuboring\\. \n\n🇷🇺\n*TASHKENT PERFECT UNIVERSITY* Отправьте свой номер телефона, чтобы подать заявку онлайн",
+                        'text' => "🇺🇿 \n*BUCHEON UNIVERSITY* onlayn ariza topshirish uchun telefon raqamingizni yuboring\\. \n\n🇷🇺\n*BUCHEON UNIVERSITY* Отправьте свой номер телефона, чтобы подать заявку онлайн",
                         'parse_mode' => 'MarkdownV2',
                         'reply_markup' => json_encode([
                             'keyboard' => [[
