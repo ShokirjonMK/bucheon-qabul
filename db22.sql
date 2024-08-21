@@ -1,0 +1,1 @@
+mysql: unknown option '-d'
