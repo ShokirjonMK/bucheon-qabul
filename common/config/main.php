@@ -15,7 +15,7 @@ return [
         ],
         'telegram' => [
             'class' => 'aki\telegram\Telegram',
-            'botToken' => '6686082454:AAHePqzPHAzvR5NMtpY6BfuwMnM3Cw9HKyI',
+            'botToken' => '7201301676:AAGf0FX_dlElEFppOb4G2aY_g2tM2QqPjNQ',
         ],
         'ikAmoCrm' => [
             'class' => 'common\components\AmoCrmClient',
