@@ -38,6 +38,32 @@ class m240524_050733_create_languages_table extends Migration
             'updated_by' => $this->integer()->notNull()->defaultValue(0),
             'is_deleted' => $this->tinyInteger()->notNull()->defaultValue(0),
         ], $tableOptions);
+        $this->insert('{{%languages}}', [
+            'name_uz' => 'O`zbek',
+            'name_en' => 'Uzbek',
+            'name_ru' => 'Узбекский',
+            'status' => 1,
+            'created_at' => time(),
+            'updated_at' => time(),
+        ]);
+
+        $this->insert('{{%languages}}', [
+            'name_uz' => 'Inglizcha',
+            'name_en' => 'English',
+            'name_ru' => 'Английский',
+            'status' => 1,
+            'created_at' => time(),
+            'updated_at' => time(),
+        ]);
+
+        $this->insert('{{%languages}}', [
+            'name_uz' => 'Ruscha',
+            'name_en' => 'Russian',
+            'name_ru' => 'Русский',
+            'status' => 1,
+            'created_at' => time(),
+            'updated_at' => time(),
+        ]);
     }
 
     /**
