@@ -487,7 +487,7 @@ class IkBotController extends Controller
 
     private static function escapeMarkdownV2($text)
     {
-        $escape_chars = ['*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
+        $escape_chars = ['[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
         $escaped_text = str_replace($escape_chars, array_map(function($char) {
             return '\\' . $char;
         }, $escape_chars), $text);
