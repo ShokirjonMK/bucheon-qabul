@@ -732,8 +732,8 @@ class IkBotController extends Controller
 
             "t9" => [
                 "uz" => "Magistratura",
-                "en" => "Магистр",
-                "ru" => "Masters",
+                "en" => "Masters",
+                "ru" => "Магистр",
             ],
 
             "t10" => [
