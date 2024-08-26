@@ -112,7 +112,7 @@ class IkBotController extends Controller
                                     'request_contact' => true,
                                 ],
                                 [
-                                    ['text' => self::undoKeyboardUser($user)]
+                                    'text' => self::undoKeyboardUser($user)
                                 ]
                             ]],
                             'resize_keyboard' => true,
@@ -228,7 +228,7 @@ class IkBotController extends Controller
                                     'request_contact' => true,
                                 ],
                                 [
-                                    ['text' => self::undoKeyboardUser($user)]
+                                    'text' => self::undoKeyboardUser($user)
                                 ]
                             ]],
                             'resize_keyboard' => true,
