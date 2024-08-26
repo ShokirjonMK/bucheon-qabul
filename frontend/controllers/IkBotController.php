@@ -44,7 +44,7 @@ class IkBotController extends Controller
         try {
 
             $user = User::findOne([
-                'chat_id' => $telegram_id
+                'username' => $telegram_id
             ]);
 
             if (!$user) {
