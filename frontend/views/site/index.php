@@ -10,7 +10,7 @@ $this->title = 'TASHKENT PERFECT UNIVERSITY';
     <div class="ban_content">
         <div class="banner">
             <div class="banner-center" data-aos="fade-up" data-aos-duration="3000">
-                <h3>Tashkent</h3>
+                <h3>Ikbol</h3>
                 <h1>perfect</h1>
                 <h3>University <span><?= Yii::t("app" , "a11") ?></span></h3>
                 <div class="banner-link">
