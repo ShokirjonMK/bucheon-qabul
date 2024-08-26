@@ -39,6 +39,7 @@ use yii\web\IdentityInterface;
  * @property integer $lang_id
  * @property integer $step_confirm_time
  * @property AuthItem $authItem
+ * @property Student $student
  * @property Constalting $cons
  * @property string $employeeFullName
  * @property string $password write-only password

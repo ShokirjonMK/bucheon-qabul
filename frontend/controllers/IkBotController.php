@@ -2,14 +2,18 @@
 
 namespace frontend\controllers;
 
+use common\models\AuthAssignment;
 use common\models\Direction;
 use common\models\EduYear;
 use common\models\EduYearForm;
 use common\models\EduYearType;
+use common\models\Student;
+use common\models\Target;
 use common\models\Telegram;
 use common\models\TelegramDtm;
 use common\models\TelegramOferta;
 use common\models\TelegramPerevot;
+use common\models\User;
 use Yii;
 use yii\httpclient\Client;
 use yii\web\Controller;
@@ -27,6 +31,7 @@ class IkBotController extends Controller
         return parent::beforeAction($action);
     }
 
+
     public function actionBot()
     {
         Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
@@ -38,105 +43,67 @@ class IkBotController extends Controller
 
         try {
 
-            return $telegram->sendMessage([
-                'chat_id' => $telegram_id,
-                'text' => "🇺🇿\nTa'lim tilini tanlang.\n\n🇷🇺\nВыберите язык обучения",
-                'reply_markup' => self::getLanguages()
+            $user = User::findOne([
+                'chat_id' => $telegram_id
             ]);
 
-            $user = Telegram::find()
-                ->andWhere(['chat_id' => $telegram_id, 'is_deleted' => 0])
-                ->one();
-            $userOne = $user;
-
             if (!$user) {
-                $newUser = new Telegram();
-                $newUser->chat_id = $telegram_id;
-                $newUser->username = $username;
-                $newUser->step = 1;
-                $newUser->is_deleted = 0;
-                $newUser->language_id = 1;
-                $newUser->save(false);
-                $user = $newUser;
-                $userOne = $newUser;
+                $user = new User();
+                $user->username = $telegram_id;
+                $user->user_role = 'student';
+
+                $password = '@ikbol_2001';
+                $user->setPassword($password);
+                $user->generateAuthKey();
+                $user->generateEmailVerificationToken();
+                $user->generatePasswordResetToken();
+                $user->status = 10;
+                $user->telegram_step = 1;
+
+                if ($user->save(false)) {
+                    $newAuth = new AuthAssignment();
+                    $newAuth->item_name = 'student';
+                    $newAuth->user_id = $user->id;
+                    $newAuth->created_at = time();
+                    $newAuth->save(false);
+
+                    $newStudent = new Student();
+                    $newStudent->user_id = $user->id;
+                    $newStudent->username = $user->username;
+                    $newStudent->password = $password;
+                    $newStudent->created_by = 0;
+                    $newStudent->updated_by = 0;
+                    $newStudent->save(false);
+                }
             }
 
-            $step = $userOne->step;
-            $lang_id = $userOne->language_id;
+            $student = $user->student;
+            $step = $user->step;
+            $lang_id = $user->lang_id;
+
 
             //ortga knopka uchun
             if ($text == "🔙Назад" || $text == "🔙Orqaga" || $text == "🔙Back") {
-                if ($userOne) {
-                    if ($userOne->step < 3) {
-                        $text = '/start';
-                    } else {
-                        if ($userOne->step < 6) {
-                            $userOne->step = 3;
-                            $userOne->save(false);
-                            return $telegram->sendMessage([
-                                'chat_id' => $telegram_id,
-                                'text' => "🇺🇿\nTa'lim tilini tanlang.\n\n🇷🇺\nВыберите язык обучения",
-                                'reply_markup' => self::getLanguages()
-                            ]);
-                        } elseif ($userOne->step < 15) {
-                            $userOne->step = 6;
-                            $userOne->save(false);
-                            return $telegram->sendMessage([
-                                'chat_id' => $telegram_id,
-                                'text' => "🔘 *Qabul turini tanlang\\!*",
-                                'parse_mode' => 'MarkdownV2',
-                                'reply_markup' => json_encode([
-                                    'keyboard' => [
-                                        [
-                                            ['text' => self::getTranslateMessage("Qabul 2024", $lang_id)],
-                                            ['text' => self::getTranslateMessage("O‘qishni ko‘chirish", $lang_id)],
-                                        ],
-                                        [
-                                            ['text' => self::getTranslateMessage("UZBMB natija", $lang_id)],
-                                        ],
-                                        [
-                                            ['text' => self::undoKeyboardUser($user)]
-                                        ]
-                                    ],
-                                    'resize_keyboard' => true,
-                                ])
-                            ]);
-                        }
-                    }
-                }
-            }
-            //ortga knopka uchun
-
-            if ($text == '/start') {
-                if ($step == 15) {
-                    $mes = self::result($userOne);
-                    if ($userOne->bot_status == 0) {
-                        $userOne->bot_status = 1;
-                        $userOne->save(false);
-                        $second_chat_id = -1002151817268;
-                        $telegram->sendMessage([
-                            'chat_id' => $second_chat_id,
-                            'text' => $mes,
-                            'parse_mode' => 'MarkdownV2',
-                            'reply_markup' => json_encode([
-                                'remove_keyboard' => true
-                            ])
-                        ]);
-                        return $telegram->sendMessage([
-                            'chat_id' => $telegram_id,
-                            'text' => $mes,
-                            'parse_mode' => 'MarkdownV2',
-                            'reply_markup' => json_encode([
-                                'remove_keyboard' => true
-                            ])
-                        ]);
-                    }
-                } else {
-                    $userOne->step = 2;
-                    $userOne->save(false);
+                if ($step == 3) {
+                    $user->telegram_step = 2;
+                    $user->save(false);
+                    $textUz = "🇺🇿 \n Hurmatli abiturient bot sizga qaysi tilda javob berishini hohlaysiz? O'zingizga mos tilni tanang! \n\n ";
+                    $textEn = "🇺🇸 \n Dear applicant, in what language would you like the bot to respond to you? Choose your own language! \n\n ";
+                    $textRu = "🇷🇺 \n Уважаемый соискатель, на каком языке вы бы хотели, чтобы бот вам отвечал? Выберите свой собственный язык!";
+                    $stepOneText = self::escapeMarkdownV2($textUz).self::escapeMarkdownV2($textEn).self::escapeMarkdownV2($textRu);
                     return $telegram->sendMessage([
                         'chat_id' => $telegram_id,
-                        'text' => "🇺🇿 \n*BUCHEON UNIVERSITY* onlayn ariza topshirish uchun telefon raqamingizni yuboring\\. \n\n🇷🇺\n*BUCHEON UNIVERSITY* Отправьте свой номер телефона, чтобы подать заявку онлайн",
+                        'text' => $stepOneText,
+                        'parse_mode' => 'MarkdownV2',
+                        'reply_markup' => self::getLanguages()
+                    ]);
+
+                } elseif ($step == 4) {
+                    $user->telegram_step = 3;
+                    $user->save(false);
+                    return $telegram->sendMessage([
+                        'chat_id' => $telegram_id,
+                        'text' => self::getTranslateMessage('t1' , $user->lang_id),
                         'parse_mode' => 'MarkdownV2',
                         'reply_markup' => json_encode([
                             'keyboard' => [[
@@ -149,10 +116,124 @@ class IkBotController extends Controller
                             'one_time_keyboard' => true,
                         ])
                     ]);
+
+                } elseif ($step == 5) {
+                    $user->telegram_step = 4;
+                    $user->save(false);
+                    return $telegram->sendMessage([
+                        'chat_id' => $telegram_id,
+                        'text' => self::getTranslateMessage('t3' , $lang_id),
+                        'parse_mode' => 'MarkdownV2',
+                        'reply_markup' => self::undoKeyboard($lang_id)
+                    ]);
+
+                } elseif ($step == 6) {
+                    $user->telegram_step = 5;
+                    $user->save(false);
+                    return $telegram->sendMessage([
+                        'chat_id' => $telegram_id,
+                        'text' => self::getTranslateMessage('t4' , $lang_id),
+                        'parse_mode' => 'MarkdownV2',
+                        'reply_markup' => self::undoKeyboard($lang_id)
+                    ]);
+
+                } elseif ($step == 7) {
+                    $user->telegram_step = 6;
+                    $user->save(false);
+                    return $telegram->sendMessage([
+                        'chat_id' => $telegram_id,
+                        'text' => self::getTranslateMessage('t5' , $lang_id),
+                        'parse_mode' => 'MarkdownV2',
+                        'reply_markup' => json_encode([
+                            'keyboard' => [
+                                [
+                                    ['text' => self::getTranslateMessage("t6", $lang_id)],
+                                ],
+                                [
+                                    ['text' => self::getTranslateMessage("t7", $lang_id)],
+                                ],
+                                [
+                                    ['text' => self::getTranslateMessage("t8", $lang_id)],
+                                ],
+                                [
+                                    ['text' => self::getTranslateMessage("t9", $lang_id)],
+                                ],
+                                [
+                                    ['text' => self::undoKeyboardUser($user)]
+                                ]
+                            ],
+                            'resize_keyboard' => true,
+                        ])
+                    ]);
+
+                } elseif ($step == 8) {
+                    $user->telegram_step = 7;
+                    $user->save(false);
+                    return $telegram->sendMessage([
+                        'chat_id' => $telegram_id,
+                        'text' => self::getTranslateMessage('t11' , $lang_id),
+                        'parse_mode' => 'MarkdownV2',
+                        'reply_markup' => json_encode([
+                            'keyboard' => [
+                                [
+                                    ['text' => self::getTranslateMessage("t12", $lang_id)],
+                                    ['text' => self::getTranslateMessage("t13", $lang_id)],
+                                    ['text' => self::getTranslateMessage("t14", $lang_id)],
+                                ],
+                                [
+                                    ['text' => self::undoKeyboardUser($user)]
+                                ]
+                            ],
+                            'resize_keyboard' => true,
+                        ])
+                    ]);
+
                 }
+            }
+            //ortga knopka uchun
+
+            if ($step == 1) {
+                $user->telegram_step = 2;
+                $user->save(false);
+
+                $textUz = "🇺🇿 \n Hurmatli abiturient bot sizga qaysi tilda javob berishini hohlaysiz? O'zingizga mos tilni tanang! \n\n ";
+                $textEn = "🇺🇸 \n Dear applicant, in what language would you like the bot to respond to you? Choose your own language! \n\n ";
+                $textRu = "🇷🇺 \n Уважаемый соискатель, на каком языке вы бы хотели, чтобы бот вам отвечал? Выберите свой собственный язык!";
+                $stepOneText = self::escapeMarkdownV2($textUz).self::escapeMarkdownV2($textEn).self::escapeMarkdownV2($textRu);
+                return $telegram->sendMessage([
+                    'chat_id' => $telegram_id,
+                    'text' => $stepOneText,
+                    'parse_mode' => 'MarkdownV2',
+                    'reply_markup' => self::getLanguages()
+                ]);
             }
 
             if ($step == 2) {
+                if (self::getSelectLanguage($text)) {
+                    $user->lang_id = self::getSelectLanguage($text);
+                    $user->telegram_step = 3;
+                    $user->save(false);
+
+                    return $telegram->sendMessage([
+                        'chat_id' => $telegram_id,
+                        'text' => self::getTranslateMessage('t1' , $user->lang_id),
+                        'parse_mode' => 'MarkdownV2',
+                        'reply_markup' => json_encode([
+                            'keyboard' => [[
+                                [
+                                    'text' => "☎️",
+                                    'request_contact' => true,
+                                ]
+                            ]],
+                            'resize_keyboard' => true,
+                            'one_time_keyboard' => true,
+                        ])
+                    ]);
+
+                }
+            }
+
+            if ($step == 3) {
                 if (json_encode($telegram->input->message->contact) != "null") {
                     $contact = json_encode($telegram->input->message->contact);
                     $contact_new = json_decode($contact);
@@ -161,83 +242,78 @@ class IkBotController extends Controller
                     if ($phoneKod != 998) {
                         return $telegram->sendMessage([
                             'chat_id' => $telegram_id,
-                            'text' => "⁉️⛔️ *Arizani faqat UZB telefon raqamlari berishi mumkin\\. Aloqa uchun\\: 771292929*",
+                            'text' => self::getTranslateMessage('t2' , $lang_id),
                             'parse_mode' => 'MarkdownV2',
                             'reply_markup' => self::undoKeyboard($lang_id)
                         ]);
                     }
-                    $userOne->phone = "+" . $phone;
-                    $userOne->step = 3;
-                    $userOne->save(false);
+                    $student->student_phone = '+'.$phone;
+                    $student->save(false);
+                    $user->telegram_step = 4;
+                    $user->save(false);
+
                     return $telegram->sendMessage([
                         'chat_id' => $telegram_id,
-                        'text' => "🇺🇿\nTa'lim tilini tanlang.\n\n🇷🇺\nВыберите язык обучения",
-                        'reply_markup' => self::getLanguages()
-                    ]);
-                }
-            }
-
-
-            if ($step == 3) {
-                if (self::getSelectLanguage($text)) {
-                    $userOne->language_id = self::getSelectLanguage($text);
-                    $userOne->step = 4;
-                    $userOne->save(false);
-                    return $telegram->sendMessage([
-                        'chat_id' => $telegram_id,
-                        'text' => "✍️ *Pasportingizngiz seriyasi va nomerini yozing\\!* \n\n💡_Masalan\\: AB1234567_",
+                        'text' => self::getTranslateMessage('t3' , $lang_id),
                         'parse_mode' => 'MarkdownV2',
                         'reply_markup' => self::undoKeyboard($lang_id)
                     ]);
                 }
             }
-
 
             if ($step == 4) {
                 $seria = self::seria($text);
                 if ($seria) {
-                    $userOne->passport_serial = substr($text, 0, 2);
-                    $userOne->passport_number = substr($text, 2, 9);
-                    $userOne->step = 5;
-                    $userOne->save(false);
+                    $student->passport_serial = substr($text, 0, 2);
+                    $student->passport_number = substr($text, 2, 9);
+                    $user->telegram_step = 5;
+                    $user->save(false);
+                    $student->save(false);
+
                     return $telegram->sendMessage([
                         'chat_id' => $telegram_id,
-                        'text' => "✍️ *Tug'ilgan sanangizni \\(yil\\-oy\\-sana formatida\\) yozing\\!* \n\n💡_Masalan\\: 2001\\-10\\-16_",
-                        'parse_mode' => 'MarkdownV2',
-                        'reply_markup' => self::undoKeyboard($lang_id)
-                    ]);
-                } else {
-                    return $telegram->sendMessage([
-                        'chat_id' => $telegram_id,
-                        'text' => "✍️ *Pasportingizngiz seriyasi va nomerini yozing\\!* \n\n💡_Masalan\\: AB1234567_",
+                        'text' => self::getTranslateMessage('t4' , $lang_id),
                         'parse_mode' => 'MarkdownV2',
                         'reply_markup' => self::undoKeyboard($lang_id)
                     ]);
                 }
+                return $telegram->sendMessage([
+                    'chat_id' => $telegram_id,
+                    'text' => self::getTranslateMessage('t3' , $lang_id),
+                    'parse_mode' => 'MarkdownV2',
+                    'reply_markup' => self::undoKeyboard($lang_id)
+                ]);
             }
-
 
             if ($step == 5) {
                 $date = self::date($text);
                 if ($date) {
-                    $userOne->birthday = date("Y-m-d", strtotime($text));
-                    $userOne->step = 6;
-                    $passport = self::passport($userOne);
+                    $student->birthday = date("Y-m-d", strtotime($text));
+                    $passport = self::passport($student);
+
                     if ($passport['is_ok']) {
-                        $userOne = $passport['user'];
-                        $userOne->save(false);
+                        $student = $passport['student'];
+                        $student->save(false);
+                        $user->telegram_step = 6;
+                        $user->save(false);
+
                         return $telegram->sendMessage([
                             'chat_id' => $telegram_id,
-                            'text' => "🔘 *Qabul turini tanlang\\!*",
+                            'text' => self::getTranslateMessage('t5' , $lang_id),
                             'parse_mode' => 'MarkdownV2',
                             'reply_markup' => json_encode([
                                 'keyboard' => [
                                     [
-                                        ['text' => self::getTranslateMessage("Qabul 2024", $lang_id)],
-                                        ['text' => self::getTranslateMessage("O‘qishni ko‘chirish", $lang_id)],
+                                        ['text' => self::getTranslateMessage("t6", $lang_id)],
                                     ],
                                     [
-                                        ['text' => self::getTranslateMessage("UZBMB natija", $lang_id)],
+                                        ['text' => self::getTranslateMessage("t7", $lang_id)],
+                                    ],
+                                    [
+                                        ['text' => self::getTranslateMessage("t8", $lang_id)],
+                                    ],
+                                    [
+                                        ['text' => self::getTranslateMessage("t9", $lang_id)],
                                     ],
                                     [
                                         ['text' => self::undoKeyboardUser($user)]
@@ -246,10 +322,11 @@ class IkBotController extends Controller
                                 'resize_keyboard' => true,
                             ])
                         ]);
+
                     } else {
                         return $telegram->sendMessage([
                             'chat_id' => $telegram_id,
-                            'text' => "⁉️⛔️ *Pasport seriyasi\\, raqami va tug'ilgan sana orqali pasport ma'lumoti topilmadi\\. Qaytadan urinib ko'ring\\!*",
+                            'text' => self::getTranslateMessage('t10' , $lang_id),
                             'parse_mode' => 'MarkdownV2',
                             'reply_markup' => self::undoKeyboard($lang_id)
                         ]);
@@ -257,62 +334,33 @@ class IkBotController extends Controller
                 } else {
                     return $telegram->sendMessage([
                         'chat_id' => $telegram_id,
-                        'text' => "✍️ *Tug'ilgan sanangizni \\(yil\\-oy\\-sana formatida\\) yozing\\!* \n\n💡_Masalan\\: 2001\\-10\\-16_",
+                        'text' => self::getTranslateMessage('t4' , $lang_id),
                         'parse_mode' => 'MarkdownV2',
                         'reply_markup' => self::undoKeyboard($lang_id)
                     ]);
                 }
             }
-
 
             if ($step == 6) {
-                $type = self::getSelectEduType($text);
+                $type = self::getSelectEduType($text , $lang_id);
                 if ($type['is_ok']) {
-                    $eduType = $type['id'];
-                    $eduYearType = EduYearType::findOne($eduType);
-                    if ($eduYearType) {
-                        $userOne->edu_year_type_id = $eduYearType->id;
-                        $userOne->step = 7;
-                        $userOne->save(false);
-                        return $telegram->sendMessage([
-                            'chat_id' => $telegram_id,
-                            'text' => "🔘 *Ta'lim shaklini tanlang\\!*",
-                            'parse_mode' => 'MarkdownV2',
-                            'reply_markup' => json_encode([
-                                'keyboard' => [
-                                    [
-                                        ['text' => self::getTranslateMessage("Kunduzgi", $lang_id)],
-                                        ['text' => self::getTranslateMessage("Kechgi", $lang_id)],
-                                        ['text' => self::getTranslateMessage("Sirtqi", $lang_id)],
-                                    ],
-                                    [
-                                        ['text' => self::undoKeyboardUser($user)]
-                                    ]
-                                ],
-                                'resize_keyboard' => true,
-                            ])
-                        ]);
-                    } else {
-                        return $telegram->sendMessage([
-                            'chat_id' => $telegram_id,
-                            'text' => "⁉️⛔️ *Qabul turi mavjud emas\\. Aloqaga chiqing: +998945055250\\!*",
-                            'parse_mode' => 'MarkdownV2',
-                            'reply_markup' => self::undoKeyboard($lang_id)
-                        ]);
-                    }
-                } else {
+                    $eduYearType = $type['data'];
+                    $student->edu_year_type_id = $eduYearType->id;
+                    $student->edu_type_id = $student->eduYearType->edu_type_id;
+                    $student->save(false);
+                    $user->telegram_step = 7;
+                    $user->save(false);
+
                     return $telegram->sendMessage([
                         'chat_id' => $telegram_id,
-                        'text' => "🔘 *Qabul turini tanlang\\!*",
+                        'text' => self::getTranslateMessage('t11' , $lang_id),
                         'parse_mode' => 'MarkdownV2',
                         'reply_markup' => json_encode([
                             'keyboard' => [
                                 [
-                                    ['text' => self::getTranslateMessage("Qabul 2024", $lang_id)],
-                                    ['text' => self::getTranslateMessage("O‘qishni ko‘chirish", $lang_id)],
-                                ],
-                                [
-                                    ['text' => self::getTranslateMessage("UZBMB natija", $lang_id)],
+                                    ['text' => self::getTranslateMessage("t12", $lang_id)],
+                                    ['text' => self::getTranslateMessage("t13", $lang_id)],
+                                    ['text' => self::getTranslateMessage("t14", $lang_id)],
                                 ],
                                 [
                                     ['text' => self::undoKeyboardUser($user)]
@@ -321,65 +369,41 @@ class IkBotController extends Controller
                             'resize_keyboard' => true,
                         ])
                     ]);
+
+                } else {
+                    return $telegram->sendMessage([
+                        'chat_id' => $telegram_id,
+                        'text' => self::getTranslateMessage('t2' , $lang_id),
+                        'parse_mode' => 'MarkdownV2',
+                        'reply_markup' => self::undoKeyboard($lang_id)
+                    ]);
                 }
             }
-
 
             if ($step == 7) {
-                $type = self::getSelectEduForm($text);
+                $type = self::getSelectEduForm($text , $lang_id);
                 if ($type['is_ok']) {
-                    $eduForm = $type['id'];
-                    $eduYearForm = EduYearForm::findOne($eduForm);
-                    if ($eduYearForm) {
-                        $userOne->edu_year_form_id = $eduYearForm->id;
-                        $userOne->step = 8;
-                        $userOne->save(false);
-                        $directions = Direction::find()
-                            ->where([
-                                'edu_year_id' => 1,
-                                'language_id' => $userOne->language_id,
-                                'edu_year_form_id' => $userOne->edu_year_form_id,
-                                'edu_year_type_id' => $userOne->edu_year_type_id,
-                                'status' => 1,
-                                'is_deleted' => 0
-                            ])->all();
+                    $eduForm = $type['data'];
+                    $student->edu_year_form_id = $eduForm->id;
+                    $student->edu_form_id = $student->eduYearForm->edu_form_id;
+                    $student->save(false);
 
-                        if (count($directions) > 0) {
-                            $keyboard = [];
-                            foreach ($directions as $dir) {
-                                $name = ($userOne->language_id == 1) ? $dir->code . ' - ' . $dir->name_uz : $dir->code . ' - ' . $dir->name_ru;
-                                $keyboard[] = [['text' => $name]];
-                            }
-                            $telegram->sendMessage([
-                                'chat_id' => $telegram_id,
-                                'text' => "🔘 *Yo‘nalish tanlang\\!*",
-                                'parse_mode' => 'MarkdownV2',
-                                'reply_markup' => json_encode([
-                                    'keyboard' => $keyboard,
-                                    'resize_keyboard' => true,
-                                    'one_time_keyboard' => true
-                                ])
-                            ]);
-                        } else {
-                            $telegram->sendMessage([
-                                'chat_id' => $telegram_id,
-                                'text' => "⁉️⛔️ *Yo‘nalish mavjud emas\\!*",
-                                'parse_mode' => 'MarkdownV2',
-                                'reply_markup' => self::undoKeyboard($lang_id)
-                            ]);
-                        }
-                    }
-                } else {
+                    $user->telegram_step = 8;
+                    $user->save(false);
+
                     return $telegram->sendMessage([
                         'chat_id' => $telegram_id,
-                        'text' => "🔘 *Ta'lim shaklini tanlang\\!*",
+                        'text' => self::getTranslateMessage('t15' , $lang_id),
                         'parse_mode' => 'MarkdownV2',
                         'reply_markup' => json_encode([
                             'keyboard' => [
                                 [
-                                    ['text' => self::getTranslateMessage("Kunduzgi", $lang_id)],
-                                    ['text' => self::getTranslateMessage("Kechgi", $lang_id)],
-                                    ['text' => self::getTranslateMessage("Sirtqi", $lang_id)],
+                                    ['text' => self::getTranslateMessage("t16", $lang_id)],
+                                    ['text' => self::getTranslateMessage("t17", $lang_id)],
+                                ],
+                                [
+                                    ['text' => self::getTranslateMessage("t18", $lang_id)],
+                                    ['text' => self::getTranslateMessage("t19", $lang_id)],
                                 ],
                                 [
                                     ['text' => self::undoKeyboardUser($user)]
@@ -389,439 +413,13 @@ class IkBotController extends Controller
                         ])
                     ]);
                 }
+                return $telegram->sendMessage([
+                    'chat_id' => $telegram_id,
+                    'text' => self::getTranslateMessage('t2' , $lang_id),
+                    'parse_mode' => 'MarkdownV2',
+                    'reply_markup' => self::undoKeyboard($lang_id)
+                ]);
             }
-
-
-            if ($step == 8) {
-                $isDirection = self::getDirection($text, $userOne);
-                if ($isDirection['is_ok']) {
-                    $direction = $isDirection['direction'];
-                    $userOne->direction_id = $direction->id;
-                    $userOne->step = 9;
-                    $userOne->save(false);
-
-                    $oferta = TelegramOferta::findOne(['telegram_id' => $userOne->id]);
-                    if ($oferta) {
-                        if ($oferta->file != null) {
-                            $fileName = \Yii::getAlias('@frontend/web/uploads/telegram/' . $userOne->id . '/' . $oferta->file);
-                            if (file_exists($fileName)) {
-                                unlink($fileName);
-                            }
-                        }
-                        $oferta->delete();
-                    }
-
-                    $perevot = TelegramPerevot::findOne(['telegram_id' => $userOne->id]);
-                    if ($perevot) {
-                        if ($perevot->file != null) {
-                            $fileName = \Yii::getAlias('@frontend/web/uploads/telegram/' . $userOne->id . '/' . $perevot->file);
-                            if (file_exists($fileName)) {
-                                unlink($fileName);
-                            }
-                        }
-                        $perevot->delete();
-                    }
-
-                    $dtm = TelegramDtm::findOne(['telegram_id' => $userOne->id]);
-                    if ($dtm) {
-                        if ($dtm->file != null) {
-                            $fileName = \Yii::getAlias('@frontend/web/uploads/telegram/' . $userOne->id . '/' . $dtm->file);
-                            if (file_exists($fileName)) {
-                                unlink($fileName);
-                            }
-                        }
-                        $dtm->delete();
-                    }
-
-                    if ($direction->oferta == 1) {
-                        $newOferta = new TelegramOferta();
-                        $newOferta->telegram_id = $userOne->id;
-                        $newOferta->save(false);
-                    }
-                    if ($userOne->eduYearType->edu_type_id == 2) {
-                        $newPerevot = new TelegramPerevot();
-                        $newPerevot->telegram_id = $userOne->id;
-                        $newPerevot->save(false);
-                    } elseif ($userOne->eduYearType->edu_type_id == 3) {
-                        $newDtm = new TelegramDtm();
-                        $newDtm->telegram_id = $userOne->id;
-                        $newDtm->save(false);
-                    }
-
-                    if ($userOne->eduYearType->edu_type_id == 1) {
-                        return $telegram->sendMessage([
-                            'chat_id' => $telegram_id,
-                            'text' => "🔘 *Imtixon turini tanlang\\!*",
-                            'parse_mode' => 'MarkdownV2',
-                            'reply_markup' => json_encode([
-                                'keyboard' => [
-                                    [
-                                        ['text' => self::getTranslateMessage("Online", $lang_id)],
-                                        ['text' => self::getTranslateMessage("Offline", $lang_id)],
-                                    ],
-                                    [
-                                        ['text' => self::undoKeyboardUser($user)]
-                                    ]
-                                ],
-                                'resize_keyboard' => true,
-                            ])
-                        ]);
-                    } elseif ($userOne->eduYearType->edu_type_id == 2) {
-                        return $telegram->sendMessage([
-                            'chat_id' => $telegram_id,
-                            'text' => "📄 *Transkript fayl yuboring\\!* \n\n💡_Eslatma\\: Fayl faqat pdf formatda va 5mbdan oshmagan holatda yuborilishi shart\\!_",
-                            'parse_mode' => 'MarkdownV2',
-                            'reply_markup' => self::undoKeyboard($lang_id)
-                        ]);
-                    } elseif ($userOne->eduYearType->edu_type_id == 3) {
-                        return $telegram->sendMessage([
-                            'chat_id' => $telegram_id,
-                            'text' => "📄 *DTM fayl yuboring\\!* \n\n💡_Eslatma\\: Fayl faqat pdf formatda va 5mbdan oshmagan holatda yuborilishi shart\\!_",
-                            'parse_mode' => 'MarkdownV2',
-                            'reply_markup' => self::undoKeyboard($lang_id)
-                        ]);
-                    }
-
-                    $telegram->sendMessage([
-                        'chat_id' => $telegram_id,
-                        'text' => "⁉️⛔️ *XATOLIK\\!*",
-                        'parse_mode' => 'MarkdownV2',
-                        'reply_markup' => self::undoKeyboard($lang_id)
-                    ]);
-
-                } else {
-                    $telegram->sendMessage([
-                        'chat_id' => $telegram_id,
-                        'text' => "⁉️⛔️ *Bunday Yo‘nalish mavjud emas\\!*",
-                        'parse_mode' => 'MarkdownV2',
-                        'reply_markup' => self::undoKeyboard($lang_id)
-                    ]);
-                }
-            }
-
-
-            if ($step == 9) {
-                if ($userOne->eduYearType->edu_type_id == 1) {
-                    $isExam = self::getExamType($text);
-                    if ($isExam['is_ok']) {
-                        $userOne->exam_type = $isExam['id'];
-                        $userOne->step = 15;
-                        $userOne->save(false);
-                        $oferta = TelegramOferta::findOne(['telegram_id' => $userOne->id]);
-                        if ($oferta) {
-                            $userOne->step = 10;
-                            $userOne->save(false);
-                            return $telegram->sendMessage([
-                                'chat_id' => $telegram_id,
-                                'text' => "📄 *5 yillik staj fayl yuboring\\!* \n\n💡_Eslatma\\: Fayl faqat pdf formatda va 5mbdan oshmagan holatda yuborilishi shart\\!_",
-                                'parse_mode' => 'MarkdownV2',
-                                'reply_markup' => self::undoKeyboard($lang_id)
-                            ]);
-                        }
-
-                        $mes = self::result($userOne);
-                        if ($userOne->bot_status == 0) {
-                            $userOne->bot_status = 1;
-                            $userOne->save(false);
-                            $second_chat_id = -1002151817268;
-                            $telegram->sendMessage([
-                                'chat_id' => $second_chat_id,
-                                'text' => $mes,
-                                'parse_mode' => 'MarkdownV2',
-                                'reply_markup' => json_encode([
-                                    'remove_keyboard' => true
-                                ])
-                            ]);
-                            return $telegram->sendMessage([
-                                'chat_id' => $telegram_id,
-                                'text' => $mes,
-                                'parse_mode' => 'MarkdownV2',
-                                'reply_markup' => json_encode([
-                                    'remove_keyboard' => true
-                                ])
-                            ]);
-                        }
-
-                    } else {
-                        return $telegram->sendMessage([
-                            'chat_id' => $telegram_id,
-                            'text' => "⁉️⛔️ *Imtixon turi noto\\‘g‘ri yuborildi\\. Qaytadan yuboring\\!*",
-                            'parse_mode' => 'MarkdownV2',
-                            'reply_markup' => json_encode([
-                                'keyboard' => [
-                                    [
-                                        ['text' => self::getTranslateMessage("Online", $lang_id)],
-                                        ['text' => self::getTranslateMessage("Offline", $lang_id)],
-                                    ],
-                                    [
-                                        ['text' => self::undoKeyboardUser($user)]
-                                    ]
-                                ],
-                                'resize_keyboard' => true,
-                            ])
-                        ]);
-                    }
-                } elseif ($userOne->eduYearType->edu_type_id == 2) {
-                    $perevot = TelegramPerevot::findOne(['telegram_id' => $userOne->id]);
-                    $document = json_encode($telegram->input->message->document);
-                    $document_new = json_decode($document, true);
-
-                    if ($document_new == null) {
-                        return $telegram->sendMessage([
-                            'chat_id' => $telegram_id,
-                            'text' => "⁉️⛔️ *Fayl pdf formatda va 5mbdan oshmagan holatda yuklanishi shart\\!*",
-                            'parse_mode' => 'MarkdownV2',
-                            'reply_markup' => self::undoKeyboard($lang_id)
-                        ]);
-                    }
-
-                    $data = json_decode(file_get_contents("https://api.telegram.org/bot6686082454:AAHePqzPHAzvR5NMtpY6BfuwMnM3Cw9HKyI/getFile?file_id=" . $document_new['file_id']), false);
-                    $url = "https://api.telegram.org/file/bot6686082454:AAHePqzPHAzvR5NMtpY6BfuwMnM3Cw9HKyI/" . $data->result->file_path;
-
-                    $arr = (explode("documents/", $data->result->file_path));
-                    $fileName = $arr[1];
-                    $photoExten = (explode(".", $fileName));
-                    $ext = $photoExten[1];
-                    $fileSize = 1024 * 1024 * 5;
-
-                    if ($ext != 'pdf') {
-                        return $telegram->sendMessage([
-                            'chat_id' => $telegram_id,
-                            'text' => "⁉️⛔️ *Fayl pdf formatda va 5mbdan oshmagan holatda yuklanishi shart\\!*",
-                            'parse_mode' => 'MarkdownV2',
-                            'reply_markup' => self::undoKeyboard($lang_id)
-                        ]);
-                    }
-                    if ($document_new['file_size'] > $fileSize) {
-                        return $telegram->sendMessage([
-                            'chat_id' => $telegram_id,
-                            'text' => "⁉️⛔️ *PDF fayl 5mb dan oshmasligi shart\\!*",
-                            'parse_mode' => 'MarkdownV2',
-                            'reply_markup' => self::undoKeyboard($lang_id)
-                        ]);
-                    }
-
-                    $name = "uploads/" . sha1($fileName) . time() . "." . $ext;
-                    $perevot->file = $name;
-                    $perevot->file_status = 1;
-                    file_put_contents($name, fopen($url, 'r'));
-
-                    if($perevot->save(false)) {
-                        $userOne->step = 15;
-                        $userOne->save(false);
-                        $oferta = TelegramOferta::findOne(['telegram_id' => $userOne->id]);
-                        if ($oferta) {
-                            $userOne->step = 10;
-                            $userOne->save(false);
-                            return $telegram->sendMessage([
-                                'chat_id' => $telegram_id,
-                                'text' => "📄 *5 yillik staj fayl yuboring\\!* \n\n💡_Eslatma\\: Fayl faqat pdf formatda yuborilishi shart\\!_",
-                                'parse_mode' => 'MarkdownV2',
-                                'reply_markup' => self::undoKeyboard($lang_id)
-                            ]);
-                        }
-
-                        $mes = self::result($userOne);
-                        if ($userOne->bot_status == 0) {
-                            $userOne->bot_status = 1;
-                            $userOne->save(false);
-                            $second_chat_id = -1002151817268;
-                            $telegram->sendMessage([
-                                'chat_id' => $second_chat_id,
-                                'text' => $mes,
-                                'parse_mode' => 'MarkdownV2',
-                                'reply_markup' => json_encode([
-                                    'remove_keyboard' => true
-                                ])
-                            ]);
-                            return $telegram->sendMessage([
-                                'chat_id' => $telegram_id,
-                                'text' => $mes,
-                                'parse_mode' => 'MarkdownV2',
-                                'reply_markup' => json_encode([
-                                    'remove_keyboard' => true
-                                ])
-                            ]);
-                        }
-
-                    } else {
-                        return $telegram->sendMessage([
-                            'chat_id' => 1841508935,
-                            'text' => json_encode($perevot->errors)
-                        ]);
-                    }
-                }  elseif ($userOne->eduYearType->edu_type_id == 3) {
-                    $dtm = TelegramDtm::findOne(['telegram_id' => $userOne->id]);
-                    $document = json_encode($telegram->input->message->document);
-                    $document_new = json_decode($document, true);
-
-                    if ($document_new == null) {
-                        return $telegram->sendMessage([
-                            'chat_id' => $telegram_id,
-                            'text' => "⁉️⛔️ *Fayl pdf formatda va 5mbdan oshmagan holatda yuklanishi shart\\!*",
-                            'parse_mode' => 'MarkdownV2',
-                            'reply_markup' => self::undoKeyboard($lang_id)
-                        ]);
-                    }
-
-                    $data = json_decode(file_get_contents("https://api.telegram.org/bot6686082454:AAHePqzPHAzvR5NMtpY6BfuwMnM3Cw9HKyI/getFile?file_id=" . $document_new['file_id']), false);
-                    $url = "https://api.telegram.org/file/bot6686082454:AAHePqzPHAzvR5NMtpY6BfuwMnM3Cw9HKyI/" . $data->result->file_path;
-
-                    $arr = (explode("documents/", $data->result->file_path));
-                    $fileName = $arr[1];
-                    $photoExten = (explode(".", $fileName));
-                    $ext = $photoExten[1];
-                    $fileSize = 1024 * 1024 * 5;
-
-                    if ($ext != 'pdf') {
-                        return $telegram->sendMessage([
-                            'chat_id' => $telegram_id,
-                            'text' => "⁉️⛔️ *Fayl pdf formatda va 5mbdan oshmagan holatda yuklanishi shart\\!*",
-                            'parse_mode' => 'MarkdownV2',
-                            'reply_markup' => self::undoKeyboard($lang_id)
-                        ]);
-                    }
-                    if ($document_new['file_size'] > $fileSize) {
-                        return $telegram->sendMessage([
-                            'chat_id' => $telegram_id,
-                            'text' => "⁉️⛔️ *PDF fayl 5mb dan oshmasligi shart\\!*",
-                            'parse_mode' => 'MarkdownV2',
-                            'reply_markup' => self::undoKeyboard($lang_id)
-                        ]);
-                    }
-
-                    $name = "uploads/" . sha1($fileName) . time() . "." . $ext;
-                    $dtm->file = $name;
-                    $dtm->file_status = 1;
-                    file_put_contents($name, fopen($url, 'r'));
-
-                    if($dtm->save(false)) {
-                        $userOne->step = 15;
-                        $userOne->save(false);
-                        $oferta = TelegramOferta::findOne(['telegram_id' => $userOne->id]);
-                        if ($oferta) {
-                            $userOne->step = 10;
-                            $userOne->save(false);
-                            return $telegram->sendMessage([
-                                'chat_id' => $telegram_id,
-                                'text' => "📄 *5 yillik staj fayl yuboring\\!* \n\n💡_Eslatma\\: Fayl faqat pdf formatda va 5mbdan oshmagan holatda yuborilishi shart\\!_",
-                                'parse_mode' => 'MarkdownV2',
-                                'reply_markup' => self::undoKeyboard($lang_id)
-                            ]);
-                        }
-
-                        $mes = self::result($userOne);
-                        if ($userOne->bot_status == 0) {
-                            $userOne->bot_status = 1;
-                            $userOne->save(false);
-                            $second_chat_id = -1002151817268;
-                            $telegram->sendMessage([
-                                'chat_id' => $second_chat_id,
-                                'text' => $mes,
-                                'parse_mode' => 'MarkdownV2',
-                                'reply_markup' => json_encode([
-                                    'remove_keyboard' => true
-                                ])
-                            ]);
-                            return $telegram->sendMessage([
-                                'chat_id' => $telegram_id,
-                                'text' => $mes,
-                                'parse_mode' => 'MarkdownV2',
-                                'reply_markup' => json_encode([
-                                    'remove_keyboard' => true
-                                ])
-                            ]);
-                        }
-
-                    } else {
-                        return $telegram->sendMessage([
-                            'chat_id' => 1841508935,
-                            'text' => json_encode($dtm->errors)
-                        ]);
-                    }
-                }
-            }
-
-
-            if ($step == 10) {
-                $oferta = TelegramOferta::findOne(['telegram_id' => $userOne->id]);
-                $document = json_encode($telegram->input->message->document);
-                $document_new = json_decode($document, true);
-
-                if ($document_new == null) {
-                    return $telegram->sendMessage([
-                        'chat_id' => $telegram_id,
-                        'text' => "⁉️⛔️ *Fayl pdf formatda va 5mbdan oshmagan holatda yuklanishi shart\\!*",
-                        'parse_mode' => 'MarkdownV2',
-                        'reply_markup' => self::undoKeyboard($lang_id)
-                    ]);
-                }
-
-                $data = json_decode(file_get_contents("https://api.telegram.org/bot6686082454:AAHePqzPHAzvR5NMtpY6BfuwMnM3Cw9HKyI/getFile?file_id=" . $document_new['file_id']), false);
-                $url = "https://api.telegram.org/file/bot6686082454:AAHePqzPHAzvR5NMtpY6BfuwMnM3Cw9HKyI/" . $data->result->file_path;
-
-                $arr = (explode("documents/", $data->result->file_path));
-                $fileName = $arr[1];
-                $photoExten = (explode(".", $fileName));
-                $ext = $photoExten[1];
-                $fileSize = 1024 * 1024 * 5;
-
-                if ($ext != 'pdf') {
-                    return $telegram->sendMessage([
-                        'chat_id' => $telegram_id,
-                        'text' => "⁉️⛔️ *Fayl pdf formatda va 5mbdan oshmagan holatda yuklanishi shart\\!*",
-                        'parse_mode' => 'MarkdownV2',
-                        'reply_markup' => self::undoKeyboard($lang_id)
-                    ]);
-                }
-                if ($document_new['file_size'] > $fileSize) {
-                    return $telegram->sendMessage([
-                        'chat_id' => $telegram_id,
-                        'text' => "⁉️⛔️ *PDF fayl 5mb dan oshmasligi shart\\!*",
-                        'parse_mode' => 'MarkdownV2',
-                        'reply_markup' => self::undoKeyboard($lang_id)
-                    ]);
-                }
-
-                $name = "uploads/" . sha1($fileName) . time() . "." . $ext;
-                $oferta->file = $name;
-                $oferta->file_status = 1;
-                file_put_contents($name, fopen($url, 'r'));
-
-                if($oferta->save(false)) {
-                    $userOne->step = 15;
-                    $userOne->save(false);
-
-                    $mes = self::result($userOne);
-                    if ($userOne->bot_status == 0) {
-                        $userOne->bot_status = 1;
-                        $userOne->save(false);
-                        $second_chat_id = -1002151817268;
-                        $telegram->sendMessage([
-                            'chat_id' => $second_chat_id,
-                            'text' => $mes,
-                            'parse_mode' => 'MarkdownV2',
-                            'reply_markup' => json_encode([
-                                'remove_keyboard' => true
-                            ])
-                        ]);
-                        return $telegram->sendMessage([
-                            'chat_id' => $telegram_id,
-                            'text' => $mes,
-                            'parse_mode' => 'MarkdownV2',
-                            'reply_markup' => json_encode([
-                                'remove_keyboard' => true
-                            ])
-                        ]);
-                    }
-                } else {
-                    return $telegram->sendMessage([
-                        'chat_id' => 1841508935,
-                        'text' => json_encode($oferta->errors)
-                    ]);
-                }
-            }
-
 
         } catch (\Exception $e) {
             return $telegram->sendMessage([
@@ -835,6 +433,8 @@ class IkBotController extends Controller
             ]);
         }
     }
+
+
 
     public static function result($userOne)
     {
@@ -929,14 +529,14 @@ class IkBotController extends Controller
         return $d && $d->format($format) === $text;
     }
 
-    public static function passport($user)
+    public static function passport($student)
     {
         $client = new Client();
         $url = 'https://api.online-mahalla.uz/api/v1/public/tax/passport';
         $params = [
-            'series' => $user->passport_serial,
-            'number' => $user->passport_number,
-            'birth_date' => $user->birthday,
+            'series' => $student->passport_serial,
+            'number' => $student->passport_number,
+            'birth_date' => $student->birthday,
         ];
         $response = $client->createRequest()
             ->setMethod('GET')
@@ -947,16 +547,16 @@ class IkBotController extends Controller
         if ($response->isOk) {
             $responseData = $response->data;
             $passport = $responseData['data']['info']['data'];
-            $user->first_name = $passport['name'];
-            $user->last_name = $passport['sur_name'];
-            $user->middle_name = $passport['patronymic_name'];
-            $user->passport_pin = (string)$passport['pinfl'];
+            $student->first_name = $passport['name'];
+            $student->last_name = $passport['sur_name'];
+            $student->middle_name = $passport['patronymic_name'];
+            $student->passport_pin = (string)$passport['pinfl'];
 
-            $user->passport_issued_date = date("Y-m-d", strtotime($passport['expiration_date']));
-            $user->passport_given_date = date("Y-m-d", strtotime($passport['given_date']));
-            $user->passport_given_by = $passport['given_place'];
-            $user->gender = $passport['gender'];
-            return ['is_ok' => true, 'user' => $user];
+            $student->passport_issued_date = date("Y-m-d", strtotime($passport['expiration_date']));
+            $student->passport_given_date = date("Y-m-d", strtotime($passport['given_date']));
+            $student->passport_given_by = $passport['given_place'];
+            $student->gender = $passport['gender'];
+            return ['is_ok' => true, 'student' => $student];
         }
         return ['is_ok' => false];
     }
@@ -964,9 +564,9 @@ class IkBotController extends Controller
 
     public static function undoKeyboard($lang_id)
     {
-        if ($lang_id == 3) {
+        if ($lang_id == 2) {
             $text_keybord_undo = "🔙Back";
-        } elseif ($lang_id == 2) {
+        } elseif ($lang_id == 3) {
             $text_keybord_undo = "🔙Назад";
         } else {
             $text_keybord_undo = "🔙Orqaga";
@@ -984,7 +584,7 @@ class IkBotController extends Controller
     public static function undoKeyboardUser($user)
     {
         if ($user->lang_id == 3) {
-            $text_keybord_undo = "🔙Back";
+            $text_keybord_undo = "🔙Назад";
         } elseif ($user->lang_id == 2) {
             $text_keybord_undo = "🔙Back";
         } else {
@@ -999,62 +599,51 @@ class IkBotController extends Controller
             'keyboard' => [
                 [
                     ['text' => "🇺🇿O‘zbek🇺🇿"],
+                ],
+                [
+                    ['text' => "🇺🇸English🇺🇸"],
                     ['text' => "🇷🇺Русский🇷🇺"],
                 ],
             ], 'resize_keyboard' => true
         ]);
     }
 
-    public static function getEduType()
+    public static function getSelectEduType($type , $lang_id)
     {
-        return json_encode([
-            'keyboard' => [
-                [
-                    ['text' => "Qabul 2024"],
-                    ['text' => "O‘qishni ko‘chirish"],
-                ],
-                [
-                    ['text' => "🇬🇧󠁧󠁢󠁥󠁮󠁧󠁿English🇬🇧󠁧󠁢󠁥󠁮󠁧󠁿"],
-                ]
-            ], 'resize_keyboard' => true
-        ]);
-    }
+        $types = [
+            1 => self::getTranslateMessage('t6', $lang_id),
+            2 => self::getTranslateMessage('t7', $lang_id),
+            3 => self::getTranslateMessage('t8', $lang_id),
+            4 => self::getTranslateMessage('t9', $lang_id),
+        ];
 
-    public static function getSelectEduType($type)
-    {
-        if ($type == 'Qabul 2024' || $type == 'Прием 2024 г.') {
-            return ['is_ok' => true, 'id' => 1];
+        $id = array_search($type, $types);
+
+        if ($id !== false) {
+            $eduYearType = EduYearType::findOne($id);
+            if ($eduYearType) {
+                return ['is_ok' => true, 'data' => $eduYearType];
+            }
         }
-        if ($type == 'O‘qishni ko‘chirish' || $type == 'Перевод') {
-            return ['is_ok' => true, 'id' => 2];
-        }
-        if ($type == 'UZBMB natija' || $type == 'Результат УЗБМБ') {
-            return ['is_ok' => true, 'id' => 3];
-        }
+
         return ['is_ok' => false];
     }
 
-    public static function getExamType($type)
+    public static function getSelectEduForm($type , $lang_id)
     {
-        if ($type == 'Online') {
-            return ['is_ok' => true, 'id' => 0];
-        }
-        if ($type == 'Offline') {
-            return ['is_ok' => true, 'id' => 1];
-        }
-        return ['is_ok' => false];
-    }
+        $types = [
+            1 => self::getTranslateMessage('t12', $lang_id),
+            2 => self::getTranslateMessage('t13', $lang_id),
+            3 => self::getTranslateMessage('t14', $lang_id),
+        ];
 
-    public static function getSelectEduForm($type)
-    {
-        if ($type == 'Kunduzgi' || $type == 'Очное') {
-            return ['is_ok' => true, 'id' => 1];
-        }
-        if ($type == 'Sirtqi' || $type == 'Заучный') {
-            return ['is_ok' => true, 'id' => 2];
-        }
-        if ($type == 'Kechgi' || $type == 'Вечер') {
-            return ['is_ok' => true, 'id' => 3];
+        $id = array_search($type, $types);
+
+        if ($id !== false) {
+            $eduYearForm = EduYearForm::findOne($id);
+            if ($eduYearForm) {
+                return ['is_ok' => true, 'data' => $eduYearForm];
+            }
         }
         return ['is_ok' => false];
     }
@@ -1063,6 +652,9 @@ class IkBotController extends Controller
     {
         if (($lang == '🇺🇿O‘zbek🇺🇿')) {
             return 1;
+        }
+        if (($lang == '🇺🇸English🇺🇸')) {
+            return 2;
         }
         if (($lang == '🇷🇺Русский🇷🇺')) {
             return 3;
@@ -1074,6 +666,7 @@ class IkBotController extends Controller
     {
         $array = [
             1 => "uz",
+            2 => "en",
             3 => "ru",
         ];
         return isset($array[$lang]) ? $array[$lang] : null;
@@ -1081,140 +674,135 @@ class IkBotController extends Controller
 
     public static function getTranslateMessage($text, $lang_id)
     {
+        $phone = '+998 94 505 52 50';
         $lang = self::getSelectLanguageText($lang_id);
         $array = [
-            "Qo'shimcha izox qoldiring..." => [
-                "uz" => "Qo'shimcha izox qoldiring...",
-                "ru" => "Оставить комментарий...",
-                "en" => "Leave a comment...",
+            "t1" => [
+                "uz" => "_Telefon raqamingizni pastdagi tugma orqali yuboring._",
+                "en" => "_Submit your phone number using the button below._",
+                "ru" => "_Отправьте свой номер телефона, используя кнопку ниже._",
             ],
-            'IELTS nechida' => [
-                "uz" => "IELTS nechida?",
-                "ru" => "Сколько стоит IELTS?",
-                "en" => "Your IELTS score?",
+
+            "t2" => [
+                "uz" => "⁉️ *Noto'g'ri ma'lumot yuborildi.* \n\n ☎️ _Aloqa uchun: ".$phone."_",
+                "en" => "⁉️ *Invalid information was sent.* \n\n ☎️ _For communication: ".$phone."_",
+                "ru" => "⁉️ *Отправлена неверная информация.* \n\n ☎️ _Для связи: ".$phone."_",
             ],
-            'Siz bakalavrgami yoki magistrgami?' => [
-                "uz" => "Siz bakalavrgami yoki magistrgami?",
-                "ru" => "Вы бакалавр или магистр?",
-                "en" => "Are you a bachelor or master?",
+
+            "t3" => [
+                "uz" => "✍️ *Pasportingizngiz seriyasi va nomerini yozing!* \n\n 💡_Masalan: AB1234567_",
+                "en" => "✍️ *Write your passport series and number!* \n\n 💡_Example: AB1234567_",
+                "ru" => "✍️ *Напишите серию и номер паспорта!* \n\n 💡_Например: AB1234567_",
             ],
-            "Xato format" =>
-                [
-                    "uz" => "Xato format",
-                    "ru" => "Формат ошибки",
-                    "en" => "Error format",
-                ],
-            "Qabul 2024" =>
-                [
-                    "uz" => "Qabul 2024",
-                    "ru" => "Прием 2024 г.",
-                    "en" => "Admission 2024",
-                ],
-            "O‘qishni ko‘chirish" =>
-                [
-                    "uz" => "O‘qishni ko‘chirish",
-                    "ru" => "Перевод",
-                    "en" => "Transfer of study",
-                ],
-            "Qabul turini tanlang..." =>
-                [
-                    "uz" => "Qabul turini tanlang...",
-                    "ru" => "Выберите тип приема...",
-                    "en" => "Select the type of reception...",
-                ],
-            "UZBMB natija" =>
-                [
-                    "uz" => "UZBMB natija",
-                    "ru" => "Результат УЗБМБ",
-                    "en" => "UZBMB result",
-                ],
-            "Kunduzgi" =>
-                [
-                    "uz" => "Kunduzgi",
-                    "ru" => "Очное",
-                ],
-            "Kechgi" =>
-                [
-                    "uz" => "Kechgi",
-                    "ru" => "Вечер",
-                ],
-            "Sirtqi" =>
-                [
-                    "uz" => "Sirtqi",
-                    "ru" => "Заучный",
-                ],
-            "📞 Telefon raqamingizni yuboring 📞" =>
-                [
-                    "uz" => "📞Telefon raqamingizni yuboring📞",
-                    "ru" => "📞Отправьте свой номер телефона📞",
-                    "en" => "📞Send your phone number📞",
-                ],
-            'Yoshiz nechida' => [
-                "uz" => "Yoshiz nechida?",
-                "ru" => "Сколько тебе лет?",
-                "en" => "How old are you?",
+
+            "t4" => [
+                "uz" => "✍️ *Tug'ilgan sanangizni (yil-oy-sana formatida) yozing!* \n\n💡_Masalan: 2001-10-16_",
+                "en" => "✍️ *Enter your date of birth (in year-month-date format)!* \n\n💡_Example: 2001-10-16_",
+                "ru" => "✍️ *Введите дату рождения (в формате год-месяц-число)!* \n\n💡_Например: 2001-10-16_",
             ],
-            "Tasdiqlash kodini kiriting..." =>
-                [
-                    "uz" => "Tasdiqlash kodini kiriting...",
-                    "ru" => "Введите код подтверждения...",
-                    "en" => "Enter confirmation code...",
-                ],
-            "Tasdiqlash kodi noto'g'ri. Iltimos tasdiqlash kodini qayta kiriting." =>
-                [
-                    "uz" => "Tasdiqlash kodi noto'g'ri. Iltimos tasdiqlash kodini qayta kiriting.",
-                    "ru" => "Код подтверждения неверный. Пожалуйста, введите код подтверждения еще раз.",
-                    "en" => "The confirmation code is incorrect. Please enter the confirmation code again.",
-                ],
-            "Qaysi viloyatda yashaysiz" =>
-                [
-                    "uz" => "Qaysi viloyatda yashaysiz?",
-                    "ru" => "В какой области проживаете?",
-                    "en" => "Which province do you live in?",
-                ],
-            "Qaysi tumanda yashaysiz?" =>
-                [
-                    "uz" => "Qaysi tumanda yashaysiz?",
-                    "ru" => "В какой pайон проживаете?",
-                    "en" => "Which district do you live in?",
-                ],
-            "Manzil qiymati 10 tadan ko'p bo'lsin..." =>
-                [
-                    "uz" => "Manzil qiymati 10 tadan ko'p bo'lsin...",
-                    "ru" => "Пусть значение адреса больше 10...",
-                    "en" => "Let the address value be more than 10 ...",
-                ],
-            "Tabriklaymiz, siz ro’yxatdan muvaffaqiyatli o’tdingiz Kerakli bo'limni tanlang!!!" =>
-                [
-                    "uz" => "Tabriklaymiz, siz ro’yxatdan muvaffaqiyatli o’tdingiz Kerakli bo'limni tanlang!!!",
-                    "ru" => "Поздравляем, вы успешно зарегистрировались. Выберите нужный раздел!!!",
-                    "en" => "Congratulations, you have successfully registered. Select the desired section !!!",
-                ],
-            "Yashash manzilingizni yozing..." =>
-                [
-                    "uz" => "Yashash manzilingizni yozing...",
-                    "ru" => "Введите свой адрес...",
-                    "en" => "Enter your address...",
-                ],
-            //"" =>
-//                [
-//                    "uz" => "",
-//                    "ru" => "",
-//                    "en" => "",
-//                ],
-            //"" =>
-//                [
-//                    "uz" => "",
-//                    "ru" => "",
-//                    "en" => "",
-//                ],
+
+            "t5" => [
+                "uz" => "🔘 *Qabul turini tanlang!*",
+                "en" => "🔘 *Select the type of reception!*",
+                "ru" => "🔘 *Выберите тип приема!*",
+            ],
+
+            "t6" => [
+                "uz" => "Qabul 2024",
+                "en" => "Admission 2024",
+                "ru" => "Принятие 2024",
+            ],
+
+            "t7" => [
+                "uz" => "O‘qishni ko‘chirish",
+                "en" => "Transfer study",
+                "ru" => "Трансферное исследование",
+            ],
+
+            "t8" => [
+                "uz" => "UZBMB natija",
+                "en" => "UZBMB result",
+                "ru" => "Результат УЗБМБ",
+            ],
+
+            "t9" => [
+                "uz" => "Magistratura",
+                "en" => "Магистр",
+                "ru" => "Masters",
+            ],
+
+            "t10" => [
+                "uz" => "⁉️ *Pasport seriyasi, raqami va tug'ilgan sana orqali pasport ma'lumoti topilmadi. Qaytadan urinib ko'ring!*",
+                "en" => "⁉️ *Passport information not found by passport series, number and date of birth. Please try again!*",
+                "ru" => "⁉️ *Паспортные данные не найдены по серии, номеру и дате рождения паспорта. Пожалуйста, попробуйте еще раз!*",
+            ],
+
+            "t11" => [
+                "uz" => "🔘 *Ta'lim shaklini tanlang!*",
+                "en" => "🔘 *Choose the form of education!*",
+                "ru" => "🔘 *Выбирайте форму обучения!*",
+            ],
+
+            "t12" => [
+                "uz" => "Kunduzgi",
+                "en" => "Daytime",
+                "ru" => "Очный",
+            ],
+
+            "t13" => [
+                "uz" => "Sirtqi",
+                "en" => "Externally",
+                "ru" => "Заочный",
+            ],
+
+            "t14" => [
+                "uz" => "Kechki",
+                "en" => "Evening",
+                "ru" => "Вечер",
+            ],
+
+            "t15" => [
+                "uz" => "🔘 *Ta'lim turini tanlang!*",
+                "en" => "🔘 *Choose the type of education!*",
+                "ru" => "🔘 *Выбирайте тип обучения!*",
+            ],
+
+            "t16" => [
+                "uz" => "O'zbek",
+                "en" => "Uzbek",
+                "ru" => "Узбекский",
+            ],
+
+            "t17" => [
+                "uz" => "English",
+                "en" => "English",
+                "ru" => "Английский",
+            ],
+
+            "t18" => [
+                "uz" => "Rus",
+                "en" => "Russian",
+                "ru" => "Русский",
+            ],
+
+            "t19" => [
+                "uz" => "Koreya",
+                "en" => "Korea",
+                "ru" => "Корея",
+            ],
 
 
+
+//            "t" => [
+//                "uz" => "",
+//                "en" => "",
+//                "ru" => "",
+//            ],
         ];
         if (isset($array[$text])) {
-            return isset($array[$text][$lang]) ? $array[$text][$lang] : $text;
+            return isset($array[$text][$lang]) ? self::escapeMarkdownV2($array[$text][$lang]) : self::escapeMarkdownV2($text);
         } else {
-            return $text;
+            return self::escapeMarkdownV2($text);
         }
     }
 }
