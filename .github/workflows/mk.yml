@@ -25,3 +25,6 @@ jobs:
           cd sites/tpu-qabul-yii/
           git reset --hard
           git pull origin main
+
+
+          
