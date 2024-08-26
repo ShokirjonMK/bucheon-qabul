@@ -27,6 +27,7 @@ class m240524_050733_create_languages_table extends Migration
 
         $this->createTable('{{%languages}}', [
             'id' => $this->primaryKey(),
+
             'name_uz' => $this->string(255)->notNull(),
             'name_en' => $this->string(255)->notNull(),
             'name_ru' => $this->string(255)->notNull(),
@@ -60,6 +61,15 @@ class m240524_050733_create_languages_table extends Migration
             'name_uz' => 'Ruscha',
             'name_en' => 'Russian',
             'name_ru' => 'Русский',
+            'status' => 1,
+            'created_at' => time(),
+            'updated_at' => time(),
+        ]);
+
+        $this->insert('{{%languages}}', [
+            'name_uz' => 'Koreys',
+            'name_en' => 'Korean',
+            'name_ru' => 'Корейский',
             'status' => 1,
             'created_at' => time(),
             'updated_at' => time(),

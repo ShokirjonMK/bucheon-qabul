@@ -38,6 +38,12 @@ class IkBotController extends Controller
 
         try {
 
+            return $telegram->sendMessage([
+                'chat_id' => $telegram_id,
+                'text' => "🇺🇿\nTa'lim tilini tanlang.\n\n🇷🇺\nВыберите язык обучения",
+                'reply_markup' => self::getLanguages()
+            ]);
+
             $user = Telegram::find()
                 ->andWhere(['chat_id' => $telegram_id, 'is_deleted' => 0])
                 ->one();
@@ -107,7 +113,7 @@ class IkBotController extends Controller
                     if ($userOne->bot_status == 0) {
                         $userOne->bot_status = 1;
                         $userOne->save(false);
-                        $second_chat_id = -1002213280546;
+                        $second_chat_id = -1002151817268;
                         $telegram->sendMessage([
                             'chat_id' => $second_chat_id,
                             'text' => $mes,
@@ -517,7 +523,7 @@ class IkBotController extends Controller
                         if ($userOne->bot_status == 0) {
                             $userOne->bot_status = 1;
                             $userOne->save(false);
-                            $second_chat_id = -1002213280546;
+                            $second_chat_id = -1002151817268;
                             $telegram->sendMessage([
                                 'chat_id' => $second_chat_id,
                                 'text' => $mes,
@@ -619,7 +625,7 @@ class IkBotController extends Controller
                         if ($userOne->bot_status == 0) {
                             $userOne->bot_status = 1;
                             $userOne->save(false);
-                            $second_chat_id = -1002213280546;
+                            $second_chat_id = -1002151817268;
                             $telegram->sendMessage([
                                 'chat_id' => $second_chat_id,
                                 'text' => $mes,
@@ -708,7 +714,7 @@ class IkBotController extends Controller
                         if ($userOne->bot_status == 0) {
                             $userOne->bot_status = 1;
                             $userOne->save(false);
-                            $second_chat_id = -1002213280546;
+                            $second_chat_id = -1002151817268;
                             $telegram->sendMessage([
                                 'chat_id' => $second_chat_id,
                                 'text' => $mes,
@@ -790,7 +796,7 @@ class IkBotController extends Controller
                     if ($userOne->bot_status == 0) {
                         $userOne->bot_status = 1;
                         $userOne->save(false);
-                        $second_chat_id = -1002213280546;
+                        $second_chat_id = -1002151817268;
                         $telegram->sendMessage([
                             'chat_id' => $second_chat_id,
                             'text' => $mes,

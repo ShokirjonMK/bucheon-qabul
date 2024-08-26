@@ -41,9 +41,11 @@ class m240609_074833_create_direction_table extends Migration
 
             'contract' => $this->integer()->null(),
 
-            'code' => $this->string(255)->notNull(),
+            'code' => $this->string(255)->null(),
 
             'course_json' => $this->string(255)->null(),
+
+            'description' => $this->text()->null(),
 
             'oferta' => $this->tinyInteger(1)->defaultValue(0),
 

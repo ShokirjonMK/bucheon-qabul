@@ -73,46 +73,6 @@ function getActiveTwo($cont, $act)
                         <span>Bosh sahifa</span>
                     </a>
                 </li>
-                <li class="sidebar_li">
-                    <a href="<?= Url::to(['target/index']) ?>" class="sidebar_li_link">
-                        <i class="i-n fa-solid fa-arrows-down-to-people"></i>
-                        <span>Target</span>
-                    </a>
-                </li>
-
-                <?php if ($role->name == 'supper_admin' || $role->name == 'admin') : ?>
-
-                    <li class="sidebar_li sidebar_drop">
-                        <a href="javascript: void(0);" class="sidebar_li_link">
-                            <i class="i-n fa-solid fa-graduation-cap"></i>
-                            <span>
-                            Ta'lim jarayoni
-                        </span>
-                            <i class="icon-n fa-solid fa-chevron-right"></i>
-                        </a>
-                        <div class="menu_drop">
-                            <ul class="sub_menu_ul">
-                                <li class="sub_menu_li">
-                                    <a href="<?= Url::to(['drift/index']) ?>" class="<?= getActiveSubMenu('', '') ?>">
-                                        Yo'nalishlar
-                                    </a>
-                                </li>
-                                <li class="sub_menu_li">
-                                    <a href="<?= Url::to(['std/index']) ?>">
-                                        Talabalar
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </li>
-
-                    <li class="sidebar_li">
-                        <a href="<?= Url::to(['employee/index']) ?>" class="sidebar_li_link">
-                            <i class="i-n fa-solid fa-user-group"></i>
-                            <span>Xodimlar</span>
-                        </a>
-                    </li>
-                <?php endif; ?>
 
                 <?php if ($role->name == 'supper_admin') : ?>
                     <li class="sidebar_li">
@@ -228,22 +188,6 @@ function getActiveTwo($cont, $act)
                         <span>Ariza izlash</span>
                     </a>
                 </li>
-
-                <li class="sidebar_li">
-                    <a href="<?= Url::to(['telegram/index']) ?>" class="sidebar_li_link">
-                        <i class="i-n fa-brands fa-telegram"></i>
-                        <span>Telegram bot</span>
-                    </a>
-                </li>
-
-                <?php if ($role->name == 'supper_admin' || $role->name == 'admin') : ?>
-                    <li class="sidebar_li">
-                        <a href="<?= Url::to(['student-operator-type/index']) ?>" class="sidebar_li_link">
-                            <i class="i-n fa-solid fa-quote-right"></i>
-                            <span>Student Type</span>
-                        </a>
-                    </li>
-                <?php endif; ?>
 
             </ul>
         </div>

@@ -72,7 +72,7 @@ $perevot = StudentDtm::find()
                 'attribute' => 'name_uz',
                 'format' => 'raw',
                 'value' => function ($model) {
-                    return $model->code. ' - ' .$model->name_uz;
+                    return $model->name_uz;
                 },
                 'contentOptions' => ['class' => 'wid250'],
             ],
