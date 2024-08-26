@@ -78,7 +78,7 @@ class IkBotController extends Controller
             }
 
             $student = $user->student;
-            $step = $user->step;
+            $step = $user->telegram_step;
             $lang_id = $user->lang_id;
 
 
