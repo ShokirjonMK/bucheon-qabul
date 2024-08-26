@@ -41,81 +41,91 @@ $eduYearForms = EduYearForm::getEduFormName($eduYear);
                         <?= $form->field($model, 'name_en')->textInput(['maxlength' => true]) ?>
                     </div>
                 </div>
-                <div class="col-lg-3 col-md-6 col-sm-12">
-                    <div class="form-group">
-                        <?= $form->field($model, 'code')->textInput(['maxlength' => true]) ?>
-                    </div>
-                </div>
 
-                <div class="col-lg-3 col-md-6 col-sm-12">
-                    <div class="form-group">
-                        <?= $form->field($model, 'contract')->textInput() ?>
-                    </div>
-                </div>
+                <div class="row">
+                    <div class="col-lg-8 col-md-12">
+                        <div class="row">
+                            <div class="col-lg-3 col-md-6 col-sm-12">
+                                <div class="form-group">
+                                    <?= $form->field($model, 'contract')->textInput() ?>
+                                </div>
+                            </div>
 
-                <div class="col-lg-3 col-md-6 col-sm-12">
-                    <div class="form-group">
-                        <?= $form->field($model, 'edu_duration')->textInput() ?>
-                    </div>
-                </div>
+                            <div class="col-lg-3 col-md-6 col-sm-12">
+                                <div class="form-group">
+                                    <?= $form->field($model, 'edu_duration')->textInput() ?>
+                                </div>
+                            </div>
 
-                <div class="col-lg-3 col-md-6 col-sm-12">
-                    <div class="form-group">
-                        <?= $form->field($model, 'language_id')->widget(Select2::classname(), [
-                            'data' => ArrayHelper::map($languages, 'id', 'name_uz'),
-                            'options' => ['placeholder' => 'Status tanlang ...'],
-                            'pluginOptions' => [
-                                'allowClear' => true
-                            ],
-                        ]); ?>
-                    </div>
-                </div>
+                            <div class="col-lg-3 col-md-6 col-sm-12">
+                                <div class="form-group">
+                                    <?= $form->field($model, 'language_id')->widget(Select2::classname(), [
+                                        'data' => ArrayHelper::map($languages, 'id', 'name_uz'),
+                                        'options' => ['placeholder' => 'Status tanlang ...'],
+                                        'pluginOptions' => [
+                                            'allowClear' => true
+                                        ],
+                                    ]); ?>
+                                </div>
+                            </div>
 
-                <div class="col-lg-3 col-md-6 col-sm-12">
-                    <div class="form-group">
-                        <?= $form->field($model, 'edu_year_type_id')->widget(Select2::classname(), [
-                            'data' => $eduYearTypes,
-                            'options' => ['placeholder' => 'Oferta tanlang ...'],
-                            'pluginOptions' => [
-                                'allowClear' => true
-                            ],
-                        ]); ?>
-                    </div>
-                </div>
+                            <div class="col-lg-3 col-md-6 col-sm-12">
+                                <div class="form-group">
+                                    <?= $form->field($model, 'edu_year_type_id')->widget(Select2::classname(), [
+                                        'data' => $eduYearTypes,
+                                        'options' => ['placeholder' => 'Oferta tanlang ...'],
+                                        'pluginOptions' => [
+                                            'allowClear' => true
+                                        ],
+                                    ]); ?>
+                                </div>
+                            </div>
 
-                <div class="col-lg-3 col-md-6 col-sm-12">
-                    <div class="form-group">
-                        <?= $form->field($model, 'edu_year_form_id')->widget(Select2::classname(), [
-                            'data' => $eduYearForms,
-                            'options' => ['placeholder' => 'Oferta tanlang ...'],
-                            'pluginOptions' => [
-                                'allowClear' => true
-                            ],
-                        ]); ?>
-                    </div>
-                </div>
+                            <div class="col-lg-3 col-md-6 col-sm-12">
+                                <div class="form-group">
+                                    <?= $form->field($model, 'edu_year_form_id')->widget(Select2::classname(), [
+                                        'data' => $eduYearForms,
+                                        'options' => ['placeholder' => 'Oferta tanlang ...'],
+                                        'pluginOptions' => [
+                                            'allowClear' => true
+                                        ],
+                                    ]); ?>
+                                </div>
+                            </div>
 
-                <div class="col-lg-3 col-md-6 col-sm-12">
-                    <div class="form-group">
-                        <?= $form->field($model, 'oferta')->widget(Select2::classname(), [
-                            'data' => Status::ofertaStatus(),
-                            'options' => ['placeholder' => 'Oferta tanlang ...'],
-                            'pluginOptions' => [
-                                'allowClear' => true
-                            ],
-                        ]); ?>
-                    </div>
-                </div>
+                            <div class="col-lg-3 col-md-6 col-sm-12">
+                                <div class="form-group">
+                                    <?= $form->field($model, 'oferta')->widget(Select2::classname(), [
+                                        'data' => Status::ofertaStatus(),
+                                        'options' => ['placeholder' => 'Oferta tanlang ...'],
+                                        'pluginOptions' => [
+                                            'allowClear' => true
+                                        ],
+                                    ]); ?>
+                                </div>
+                            </div>
 
-                <div class="col-lg-3 col-md-6 col-sm-12">
-                    <div class="form-group">
-                        <?= $form->field($model, 'status')->widget(Select2::classname(), [
-                            'data' => Status::accessStatus(),
-                            'options' => ['placeholder' => 'Status tanlang ...'],
-                            'pluginOptions' => [
-                                'allowClear' => true
-                            ],
-                        ]); ?>
+                            <div class="col-lg-3 col-md-6 col-sm-12">
+                                <div class="form-group">
+                                    <?= $form->field($model, 'status')->widget(Select2::classname(), [
+                                        'data' => Status::accessStatus(),
+                                        'options' => ['placeholder' => 'Status tanlang ...'],
+                                        'pluginOptions' => [
+                                            'allowClear' => true
+                                        ],
+                                    ]); ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-12">
+                        <div class="row">
+                            <div class="col-lg-12 col-md-6 col-sm-12">
+                                <div class="form-group">
+                                    <?= $form->field($model, 'description')->textarea(['rows' => 5]) ?>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

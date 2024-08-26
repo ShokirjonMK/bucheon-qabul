@@ -55,10 +55,11 @@ class Direction extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-            [['name_uz', 'name_ru', 'name_en', 'language_id', 'edu_year_type_id', 'edu_year_form_id', 'code' , 'contract' , 'edu_duration'], 'required'],
+            [['name_uz', 'name_ru', 'name_en', 'language_id', 'edu_year_type_id', 'edu_year_form_id', 'contract' , 'edu_duration'], 'required'],
             [['edu_year_id', 'language_id', 'edu_year_type_id', 'edu_year_form_id', 'edu_form_id', 'edu_type_id', 'contract', 'oferta', 'status', 'created_at', 'updated_at', 'created_by', 'updated_by', 'is_deleted'], 'integer'],
             [['name_uz', 'name_ru', 'name_en', 'code', 'course_json'], 'string', 'max' => 255],
             [['edu_duration'], 'number'],
+            [['description'], 'safe'],
             [['edu_form_id'], 'exist', 'skipOnError' => true, 'targetClass' => EduForm::class, 'targetAttribute' => ['edu_form_id' => 'id']],
             [['edu_type_id'], 'exist', 'skipOnError' => true, 'targetClass' => EduType::class, 'targetAttribute' => ['edu_type_id' => 'id']],
             [['edu_year_form_id'], 'exist', 'skipOnError' => true, 'targetClass' => EduYearForm::class, 'targetAttribute' => ['edu_year_form_id' => 'id']],
