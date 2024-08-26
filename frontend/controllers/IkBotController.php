@@ -38,6 +38,12 @@ class IkBotController extends Controller
 
         try {
 
+            return $telegram->sendMessage([
+                'chat_id' => $telegram_id,
+                'text' => "🇺🇿\nTa'lim tilini tanlang.\n\n🇷🇺\nВыберите язык обучения",
+                'reply_markup' => self::getLanguages()
+            ]);
+
             $user = Telegram::find()
                 ->andWhere(['chat_id' => $telegram_id, 'is_deleted' => 0])
                 ->one();
